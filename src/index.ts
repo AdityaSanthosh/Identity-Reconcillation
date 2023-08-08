@@ -10,7 +10,7 @@ import { createServer } from '@config/express';
 import { AddressInfo } from 'net';
 import http from 'http';
 import { logger } from '@config/logger';
-import defaultRouter from "@server/routes/contact";
+import defaultRouter from "@server/routes/contact.route";
 const host = process.env.HOST || '0.0.0.0';
 const port = process.env.PORT || '5000';
 
