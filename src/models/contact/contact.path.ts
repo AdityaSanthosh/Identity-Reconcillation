@@ -32,7 +32,7 @@ export async function create(email, phoneNumber): Promise<Contact> {
                 : [existingEmailContact, existingPhoneContact];
         await updateContact(oldest_contact.id,{linkPrecedence:LinkPrecendence.primary});
         await updateContact(recent_contact.id,{linkPrecedence:LinkPrecendence.secondary, linkedId: oldest_contact.id});
-        return oldest_contact;
+        return recent_contact;
     }
     let linkPrecedence;
     let linkedId;
@@ -57,24 +57,26 @@ export async function create(email, phoneNumber): Promise<Contact> {
 }
 
 export async function identify(contact: Contact): Promise<ContactResponse> {
-    const allContacts = await getSecondaryContacts(contact.id);
-    console.log(contact, allContacts);
-    if(!allContacts.length) {
-        const data = {
+    let data;
+    if(contact.linkPrecedence === LinkPrecendence.secondary) {
+        contact = await getContactById(contact.linkedId);
+        const allContacts = await getSecondaryContacts(contact.id);
+        const secondaryContactIds = allContacts.map(contact => contact.id);
+        allContacts.unshift(contact);
+        data = {
+            primaryContactId: contact.id,
+            emails: allContacts.map(contact => contact.email),
+            phoneNumbers: allContacts.map(contact => contact.phoneNumber),
+            secondaryContactIds,
+        }
+    }
+    else {
+        data = {
             primaryContactId: contact.id,
             emails: contact?.email,
             phoneNumbers: contact?.phoneNumber,
             secondaryContactIds: null,
         }
-        return convertContact(data);
-    }
-    const secondaryContactIds = allContacts.map(contact => contact.id);
-    allContacts.unshift(contact);
-    const data = {
-        primaryContactId: contact.id,
-        emails: allContacts.map(contact => contact.email),
-        phoneNumbers: allContacts.map(contact => contact.phoneNumber),
-        secondaryContactIds,
     }
     return convertContact(data);
 }

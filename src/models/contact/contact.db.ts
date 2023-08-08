@@ -37,13 +37,6 @@ export async function updateContact(id, data) {
     });
 }
 
-
-export async function isDuplicateContact(email,phoneNumber): Promise<boolean> {
-    return !!await prisma.contact.findFirst({
-        where: {email, phoneNumber},
-    });
-}
-
 export async function getSecondaryContacts(id): Promise<Contact[]> {
     return await  prisma.contact.findMany({
         where: {
