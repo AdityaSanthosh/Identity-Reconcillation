@@ -11,8 +11,9 @@ defaultRouter.post('/identify', async (req, res) => {
     }
     const email = req.body.email || null;
     const phoneNumber = req.body.phoneNumber || null;
-    if (isDuplicateContact(email, phoneNumber)) {
+    if (await isDuplicateContact(email, phoneNumber)) {
         res.status(403).json({message: 'Contact with this email and phoneNumber already exists'});
+        return;
     }
     let identified_contact = await create(email, phoneNumber)
     res.status(200).json({contact: identified_contact});

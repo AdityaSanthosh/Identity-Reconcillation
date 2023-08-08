@@ -1,11 +1,11 @@
-import {Contact} from "@server/models/contact/contact.interface";
-import {parseContact} from "@server/models/contact/contact.utils";
+import { Contact } from '@server/models/contact/contact.interface';
+import { parseContact } from '@server/models/contact/contact.utils';
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 export async function createContact(data): Promise<Contact> {
-    const contact = await prisma.Contact.create({
+    const contact = await prisma.contact.create({
       data: {
         phoneNumber: data.phoneNumber || null,
         email: data.email || null,
@@ -19,19 +19,33 @@ export async function createContact(data): Promise<Contact> {
 }
 
 export async function getContactById(id): Promise<Contact> {
-    return await prisma.Contact.findUnique({
-      where: { id },
+    return prisma.contact.findUnique({
+        where: {id},
     });
 }
 
-export function isDuplicateContact(email,phoneNumber): boolean {
-    return prisma.$exists.Contact({
-        where: { email, phoneNumber },
+export async function updateContact(id, data) {
+    return prisma.contact.update({
+        where: {id},
+        data: {
+            phoneNumber: data?.phoneNumber,
+            email: data?.email,
+            linkedId: data?.linkedId,
+            linkPrecedence: data?.linkPrecedence,
+            updatedAt: new Date(),
+        },
+    });
+}
+
+
+export async function isDuplicateContact(email,phoneNumber): Promise<boolean> {
+    return !!await prisma.contact.findFirst({
+        where: {email, phoneNumber},
     });
 }
 
 export function getSecondaryContacts(id): Contact[] {
-    return prisma.Contact.findMany({
+    return prisma.contact.findMany({
         where: {
             linkedId: id
         },

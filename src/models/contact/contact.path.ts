@@ -1,5 +1,5 @@
 import {Contact} from "@server/models/contact/contact.interface";
-import {createContact, getContactById} from "@server/models/contact/contact.db";
+import {createContact, getContactById, updateContact} from "@server/models/contact/contact.db";
 import {PrismaClient} from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -11,13 +11,19 @@ export async function create(email, phoneNumber): Promise<Contact> {
          existingEmailContact = await prisma.contact.findFirst({
             where: {
                 email,
-            }
+            },
+             orderBy: {
+                createdAt: 'asc'
+             }
         });
     }
     if(phoneNumber) {
         existingPhoneContact = await prisma.contact.findFirst({
             where: {
                 phoneNumber,
+            },
+            orderBy: {
+                createdAt: 'asc'
             }
         });
     }
@@ -28,6 +34,15 @@ export async function create(email, phoneNumber): Promise<Contact> {
             linkPrecedence: "primary",
         }
         contact = await createContact(new_contact)
+    }
+    if(existingPhoneContact && existingEmailContact && existingEmailContact!=existingPhoneContact) {
+        const [oldest_contact, recent_contact] =
+            existingPhoneContact.createdAt < existingEmailContact.createdAt
+                ? [existingPhoneContact, existingEmailContact]
+                : [existingEmailContact, existingPhoneContact];
+        await updateContact(oldest_contact.id,{linkedPrecedence:"primary"});
+        await updateContact(recent_contact.id,{linkedPrecedence:"secondary", linkedId: oldest_contact.id});
+        return contact;
     }
     if(existingPhoneContact || existingEmailContact) {
         let firstIdentifiedId = existingPhoneContact?.id || existingEmailContact?.id;
