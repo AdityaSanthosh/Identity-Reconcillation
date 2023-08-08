@@ -10,13 +10,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum LinkPrecendence {
+  secondary
+  primary
+}
+
 model Contact {
   id                   Int      @id @default(autoincrement())
-  phoneNumber          String
-  email                String   @unique
+  phoneNumber          String?
+  email                String?
   linkedId             Int?
-  linkPrecedence       String
+  linkPrecedence       LinkPrecendence
   createdAt            DateTime
   updatedAt            DateTime
   deletedAt            DateTime?
+  @@unique([phoneNumber, email],name: "ContactIdentifier")
 }
