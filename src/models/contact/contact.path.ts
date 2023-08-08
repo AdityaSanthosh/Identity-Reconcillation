@@ -3,11 +3,12 @@ import {
   ContactResponse,
 } from '@server/models/contact/contact.interface';
 import {
-  createContact,
-  getContactById,
-  updateContact,
+    createContact,
+    getContactById, getSecondaryContacts,
+    updateContact,
 } from '@server/models/contact/contact.db';
-import { PrismaClient } from '@prisma/client';
+import {LinkPrecendence, PrismaClient} from '@prisma/client';
+import {convertContact} from "@server/models/contact/contact.utils";
 
 const prisma = new PrismaClient();
 
@@ -29,23 +30,22 @@ export async function create(email, phoneNumber): Promise<Contact> {
             existingPhoneContact.createdAt < existingEmailContact.createdAt
                 ? [existingPhoneContact, existingEmailContact]
                 : [existingEmailContact, existingPhoneContact];
-        await updateContact(oldest_contact.id,{linkedPrecedence:"primary"});
-        await updateContact(recent_contact.id,{linkedPrecedence:"secondary", linkedId: oldest_contact.id});
+        await updateContact(oldest_contact.id,{linkPrecedence:LinkPrecendence.primary});
+        await updateContact(recent_contact.id,{linkPrecedence:LinkPrecendence.secondary, linkedId: oldest_contact.id});
         return oldest_contact;
     }
     let linkPrecedence;
     let linkedId;
     if(!existingPhoneContact && !existingEmailContact) {
-        linkPrecedence = "primary"
+        linkPrecedence = LinkPrecendence.primary;
     }
     if(existingPhoneContact || existingEmailContact) {
         let firstIdentifiedId = existingPhoneContact?.id || existingEmailContact?.id;
         let firstIdentifiedContact = await getContactById(firstIdentifiedId);
-        linkedId =
-            firstIdentifiedContact.linkPrecedence === "secondary"
-                ? firstIdentifiedContact.linkedId
-                : firstIdentifiedContact.id;
-        linkPrecedence = "secondary"
+        let primaryContact = firstIdentifiedContact.linkPrecedence === LinkPrecendence.secondary ? await getContactById(firstIdentifiedContact.linkedId) : firstIdentifiedContact;
+        linkedId = primaryContact.id;
+        await updateContact(linkedId,{linkPrecedence: LinkPrecendence.primary});
+        linkPrecedence = LinkPrecendence.secondary
     }
     let new_contact = {
         phoneNumber,
@@ -56,6 +56,25 @@ export async function create(email, phoneNumber): Promise<Contact> {
     return await createContact(new_contact);
 }
 
-export function identify(contact: Contact): ContactResponse {
-
+export async function identify(contact: Contact): Promise<ContactResponse> {
+    const allContacts = await getSecondaryContacts(contact.id);
+    console.log(contact, allContacts);
+    if(!allContacts.length) {
+        const data = {
+            primaryContactId: contact.id,
+            emails: contact?.email,
+            phoneNumbers: contact?.phoneNumber,
+            secondaryContactIds: null,
+        }
+        return convertContact(data);
+    }
+    const secondaryContactIds = allContacts.map(contact => contact.id);
+    allContacts.unshift(contact);
+    const data = {
+        primaryContactId: contact.id,
+        emails: allContacts.map(contact => contact.email),
+        phoneNumbers: allContacts.map(contact => contact.phoneNumber),
+        secondaryContactIds,
+    }
+    return convertContact(data);
 }

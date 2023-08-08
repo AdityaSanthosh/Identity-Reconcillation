@@ -44,10 +44,13 @@ export async function isDuplicateContact(email,phoneNumber): Promise<boolean> {
     });
 }
 
-export function getSecondaryContacts(id): Contact[] {
-    return prisma.contact.findMany({
+export async function getSecondaryContacts(id): Promise<Contact[]> {
+    return await  prisma.contact.findMany({
         where: {
             linkedId: id
         },
+        orderBy: {
+            createdAt: 'asc'
+        }
     });
 }

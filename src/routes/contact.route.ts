@@ -1,5 +1,5 @@
 import express from 'express';
-import {create} from "@server/models/contact/contact.path";
+import {create, identify} from "@server/models/contact/contact.path";
 import {isDuplicateContact} from "@server/models/contact/contact.db";
 
 const defaultRouter = express.Router();
@@ -15,8 +15,8 @@ defaultRouter.post('/identify', async (req, res) => {
         res.status(403).json({message: 'Contact with this email and phoneNumber already exists'});
         return;
     }
-    let identified_contact = await create(email, phoneNumber)
-    res.status(200).json({contact: identified_contact});
+    let contactResponse = await identify(await create(email, phoneNumber));
+    res.status(200).json({contact: contactResponse});
 });
 
 export default defaultRouter;
