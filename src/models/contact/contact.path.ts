@@ -25,26 +25,31 @@ export async function create(email, phoneNumber): Promise<Contact> {
             orderBy: { createdAt: 'asc' },
         })
         : null;
-    if(existingPhoneContact && existingEmailContact && existingEmailContact!=existingPhoneContact) {
+    // Don't create a new contact. Since there is a Unique Phone & Email db check, alternate implementation is throwing this from
+    // createContact function
+    if(existingPhoneContact && existingEmailContact && existingEmailContact.id===existingPhoneContact.id) {
+        return existingPhoneContact;
+    }
+    if(existingPhoneContact && existingEmailContact && existingEmailContact.id!==existingPhoneContact.id) {
         const [oldest_contact, recent_contact] =
             existingPhoneContact.createdAt < existingEmailContact.createdAt
                 ? [existingPhoneContact, existingEmailContact]
                 : [existingEmailContact, existingPhoneContact];
-        await updateContact(oldest_contact.id,{linkPrecedence:LinkPrecendence.primary});
         await updateContact(recent_contact.id,{linkPrecedence:LinkPrecendence.secondary, linkedId: oldest_contact.id});
-        return recent_contact;
     }
     let linkPrecedence;
     let linkedId;
+    // No Existing Contact found, create a new contact
     if(!existingPhoneContact && !existingEmailContact) {
         linkPrecedence = LinkPrecendence.primary;
     }
+    // If either phoneNumber or Email is found, get the primary contact
+    // and make its id as the linkedId of the newly created contact with linkPrecedence Secondary
     if(existingPhoneContact || existingEmailContact) {
         let firstIdentifiedId = existingPhoneContact?.id || existingEmailContact?.id;
         let firstIdentifiedContact = await getContactById(firstIdentifiedId);
         let primaryContact = firstIdentifiedContact.linkPrecedence === LinkPrecendence.secondary ? await getContactById(firstIdentifiedContact.linkedId) : firstIdentifiedContact;
         linkedId = primaryContact.id;
-        await updateContact(linkedId,{linkPrecedence: LinkPrecendence.primary});
         linkPrecedence = LinkPrecendence.secondary
     }
     let new_contact = {
