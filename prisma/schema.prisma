@@ -20,7 +20,7 @@ model Contact {
   phoneNumber          String?
   email                String?
   linkedId             Int?
-  linkPrecedence       LinkPrecendence
+  linkPrecedence       LinkPrecendence @default(primary)
   createdAt            DateTime
   updatedAt            DateTime
   deletedAt            DateTime?
