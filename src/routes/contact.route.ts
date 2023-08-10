@@ -8,8 +8,8 @@ defaultRouter.post('/identify', async (req, res) => {
         res.json({message: 'Either phoneNumber or email should be present in the request'});
         return;
     }
-    const email = req.body.email || null;
-    const phoneNumber = req.body.phoneNumber || null;
+    const email = req.body.email.trim() || null;
+    const phoneNumber = req.body.phoneNumber.trim() || null;
     let contactResponse = await identify(await create(email, phoneNumber));
     res.status(200).json({contact: contactResponse});
 });
